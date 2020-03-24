@@ -1,6 +1,7 @@
 package router
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -13,14 +14,14 @@ var (
 )
 
 type User struct {
-	username string `json: "username, omitempty"`
-	password string `json: "password, omitempty"`
+	username string `json:"username,omitempty"`
+	password string `json:"password,omitempty"`
 }
 
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	(*w).Header().Set("Content-Type", "application/json")
+	/* (*w).Header().Set("Content-Type", "application/json") */
 	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
 
@@ -28,17 +29,21 @@ func init() {
 	router = mux.NewRouter()
 	databases.Conectar()
 	router.HandleFunc("/", home).Methods("GET")
-	router.HandleFunc("/signin", singinUser).Methods(http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodOptions)
-
+	/* 	router.HandleFunc("/signin", singinUser).Methods(http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodOptions) */
+	router.HandleFunc("/signin", singinUser).Methods("POST")
 	router.HandleFunc("/home", homeHandler).Methods("GET")
-
 	router.Use(mux.CORSMethodMiddleware(router))
 
 }
 func singinUser(w http.ResponseWriter, req *http.Request) {
-
 	setupResponse(&w, req)
-	log.Println("holaa")
+
+	var usuario User
+	log.Println(req.Body)
+	_ = json.NewDecoder(req.Body).Decode(&usuario)
+
+	log.Println(usuario.password)
+	log.Println(usuario)
 
 }
 
@@ -59,7 +64,6 @@ func homeHandler(res http.ResponseWriter, req *http.Request) {
 		log.Println(err)
 		return
 	}
-	/* personas := []Persona{} */
 
 	var p Persona
 	var contador int8
