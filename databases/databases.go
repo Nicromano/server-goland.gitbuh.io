@@ -3,7 +3,6 @@ package databases
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	//driver para mysql
 	_ "github.com/go-sql-driver/mysql"
@@ -36,12 +35,8 @@ func Conectar() {
 }
 
 /* ConsultaSQL exportar funcion para   */
-func ConsultaSQL(query string, datos interface{}) (*sql.Rows, error) {
+func ConsultaSQL(query string, datos ...interface{}) (*sql.Rows, error) {
 
-	row, er := db.Query(query, datos)
-	if er != nil {
-		log.Fatal(er)
-		return nil, er
-	}
-	return row, nil
+	row, er := db.Query(query, datos...)
+	return row, er
 }
