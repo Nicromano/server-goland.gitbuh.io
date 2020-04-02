@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"../databases"
+	"../mail"
 	"github.com/gorilla/mux"
 )
 
@@ -42,6 +43,7 @@ func init() {
 	/* 	router.HandleFunc("/signin", singinUser).Methods(http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodOptions) */
 	router.HandleFunc("/signin", singinUser).Methods("POST")
 	router.HandleFunc("/signup", signupUser).Methods("POST")
+	router.HandleFunc("/forgot", forgotPassword).Methods("POST")
 	router.HandleFunc("/home", homeHandler).Methods("GET")
 	router.Use(mux.CORSMethodMiddleware(router))
 
@@ -51,6 +53,15 @@ func controlError(err error) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+func forgotPassword(w http.ResponseWriter, req *http.Request) {
+	setupResponse(&w, req)
+	var user User
+	_ = json.NewDecoder(req.Body).Decode(&user)
+	mail.SendMail("Jose", user.Email, "correo.html")
+
+	log.Println("correo enviado")
+
 }
 func signupUser(w http.ResponseWriter, req *http.Request) {
 	setupResponse(&w, req)
