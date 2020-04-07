@@ -3,7 +3,7 @@ package router
 import (
 	"log"
 	"net/http"
-
+	"encoding/json"
 	"../databases"
 	"github.com/gorilla/mux"
 )
@@ -72,11 +72,10 @@ func singinUser(w http.ResponseWriter, req *http.Request) {
 }
 
 func homeHandler(res http.ResponseWriter, req *http.Request) {
-	setupResponse(&w, req)
+	setupResponse(&res, req)
 
-	 link := Link{Name:'Google', Url:'https://www.google.com'} 
-	 
-	databases.InsertOne('links', 'links' )
+	link := json.NewEncoder(res).Encode(Link{Name:'Google', Url:'https://www.google.com'} )
+	databases.InsertOne('links', 'links', link )
 
 	res.Write([]byte("Hello word"))
 }
