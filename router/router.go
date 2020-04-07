@@ -1,12 +1,10 @@
 package router
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
 	"../databases"
-	"../mail"
 	"github.com/gorilla/mux"
 )
 
@@ -27,6 +25,12 @@ type User struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
 	Image    string `json:image`
+}
+
+type Link struct {
+	Name        string `json:"name"`
+	Url         string `json:"url"`
+	Description string `json:"description"`
 }
 
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
@@ -56,81 +60,30 @@ func controlError(err error) {
 }
 func forgotPassword(w http.ResponseWriter, req *http.Request) {
 	setupResponse(&w, req)
-	var user User
-	_ = json.NewDecoder(req.Body).Decode(&user)
-	mail.SendMail("Jose", user.Email, "correo.html")
-
-	log.Println("correo enviado")
 
 }
 func signupUser(w http.ResponseWriter, req *http.Request) {
 	setupResponse(&w, req)
-	var user User
-	_ = json.NewDecoder(req.Body).Decode(&user)
-
-	log.Println(user)
-
-	_, err := databases.ConsultaSQL("INSERT INTO USUARIO(USERNAME, PASSWORD, EMAIL) VALUES(?, AES_ENCRYPT(?, 'pato'), ?)", user.Username, user.Password, user.Email)
-	if err != nil {
-		json.NewEncoder(w).Encode(Response{Title: "NO", Description: "Usuario no registrado"})
-		log.Fatal(err)
-	} else {
-		json.NewEncoder(w).Encode(Response{Title: "YES", Description: "Usuario registrado"})
-
-	}
 
 }
 func singinUser(w http.ResponseWriter, req *http.Request) {
 	setupResponse(&w, req)
 
-	var user User
-	_ = json.NewDecoder(req.Body).Decode(&user)
-
-	log.Println(user)
-
-	row, err := databases.ConsultaSQL("SELECT * FROM USUARIO WHERE USERNAME = ? AND AES_DECRYPT(PASSWORD, 'pato') = ?", user.Username, user.Password)
-	controlError(err)
-	if row.Next() {
-		json.NewEncoder(w).Encode(Response{Title: "OK", Description: "Usuario encontrado"})
-	} else {
-
-		json.NewEncoder(w).Encode(Response{Title: "ERROR", Description: "Usuario no encontrado"})
-	}
-
 }
 
 func homeHandler(res http.ResponseWriter, req *http.Request) {
-	cliente := "Cliente"
-	row, err := databases.ConsultaSQL("select * from persona where rol = ?", cliente)
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	setupResponse(&w, req)
 
-	var p Persona
-	var contador int8
-	for row.Next() {
+	 link := Link{Name:'Google', Url:'https://www.google.com'} 
+	 
+	databases.InsertOne('links', 'links' )
 
-		err := row.Scan(&p.cedula, &p.rol, &p.nombre, &p.telefono, &p.direccion)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("%s, %s, %s, %s, %s", p.cedula, p.rol, p.nombre, p.telefono, p.direccion)
-		contador++
-	}
-	log.Println(contador)
-	defer row.Close()
 	res.Write([]byte("Hello word"))
 }
 
 func home(res http.ResponseWriter, req *http.Request) {
 
 	res.Write([]byte("Holaa"))
-}
-
-//Estructura para datos de persona
-type Persona struct {
-	cedula, rol, nombre, telefono, direccion interface{}
 }
 
 //GetRouter Funcion para retornar el router
