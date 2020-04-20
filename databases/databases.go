@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"../model"
+
 	//driver para mongo
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,32 +21,6 @@ var (
 	client *mongo.Client
 	err    error
 )
-
-type User struct {
-	Username  string        `json:"username"    bson:"username" `
-	Password  string        `json:"password"    bson:"password"`
-	Email     string        `json:"email"    	bson:"email"`
-	Image     string        `json:"image"   	bson:"image"`
-	Links     []Link        `json:"links"    	bson:"links"`
-	Follow    []interface{} `json:"follow"   	bson:"follow"`
-	Followers []interface{} `json:"followers"   bson:"followers"`
-}
-
-/* Estructura de link */
-type Link struct {
-	Name        string    `json:"name"  		bson:"name" 	`
-	Url         string    `json:"url"  			bson:"url" 		`
-	Description string    `json:"description"  	bson:"description" `
-	Comments    []Comment `json:"comments"  	bson:"comments"`
-	Like        uint32    `json:"like"  		bson:"like"`
-	Dislike     uint32    `json:"dislike"  		bson:"dislike"`
-}
-type Comment struct {
-	IdUser  string `json:"iduser"  		bson:"iduser"`
-	Content string `json:"content"  	bson:"content"`
-	Like    uint32 `json:"like"  		bson:"like"`
-	Dislike uint32 `json:"dislike"  	bson:"dislike"`
-}
 
 //Conectar a la base de datos
 func Conectar() {
@@ -63,30 +39,28 @@ func Conectar() {
 }
 
 // Insertat un elemento en una coleccion
-func InsertOne(database string, document string, data interface{}) error {
+func InsertOne(database string, document string, data model.User) error {
 	/* Crea una instancia de la coleccion */
 	collection := client.Database(database).Collection(document)
 	/* Abre un contexto */
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	/* Inserta un dato */
-	res, err := collection.InsertOne(ctx, convertBSON(data))
+	_, err := collection.InsertOne(ctx, convertBSON(data))
 	/*  chequea error*/
 	controlError(err)
-	fmt.Printf("%v", res.InsertedID)
 	return err
 }
 
 func controlError(err error) {
 	if err != nil {
-		log.Println(err)
+		log.Panicln(err)
 	}
-	log.Println("----END OF ERROR----")
 }
 
 //Buscar todos los elementos
-func FindAll(database string, document string) []interface{} {
+func FindAll(database string, document string) []model.User {
 
-	var results []interface{}
+	var results []model.User
 	collection := client.Database(database).Collection(document)
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
@@ -95,7 +69,7 @@ func FindAll(database string, document string) []interface{} {
 	defer cursor.Close(ctx)
 
 	for cursor.Next(ctx) {
-		var result interface{}
+		var result model.User
 		cursor.Decode(&result)
 		results = append(results, result)
 	}
@@ -104,20 +78,19 @@ func FindAll(database string, document string) []interface{} {
 }
 
 //Encuentra uno
-func FindOne(database, document, clave, valor string) interface{} {
-	var result User
+func FindOne(database, document, clave, valor string) (model.User, error) {
+	var result model.User
 	collection := client.Database(database).Collection(document)
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
 	filter := bson.D{{clave, valor}}
 	err := collection.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
-		fmt.Println("Error: " + err.Error())
-		fmt.Printf("Dato %v no encontrado en la coleccion %s\n", filter, document)
-		return nil
+		fmt.Printf("Dato no encontrado en la coleccion %s\n", document)
+		return result, err
 	}
 
-	return result
+	return result, err
 }
 
 //Actualiza un documento

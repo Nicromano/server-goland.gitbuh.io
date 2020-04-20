@@ -6,8 +6,9 @@ import (
 	"log"
 	"net/http"
 
-	"../crypto"
+	"../bcrypt"
 	"../databases"
+	"../model"
 	"github.com/gorilla/mux"
 )
 
@@ -23,29 +24,29 @@ type Response struct {
 
 /* Estructura de usuario */
 type User struct {
-	Username  string        `json:"username"    bson:"username" `
-	Password  string        `json:"password"    bson:"password"`
-	Email     string        `json:"email"    	bson:"email"`
-	Image     string        `json:"image"   	bson:"image"`
-	Links     []Link        `json:"links"    	bson:"links"`
-	Follow    []interface{} `json:"follow"   	bson:"follow"`
-	Followers []interface{} `json:"followers"   bson:"followers"`
+	Username  string         `json:"username"`
+	Password  string         `json:"password"`
+	Email     string         `json:"email"`
+	Image     string         `json:"image"`
+	Links     *[]Link        `json:"links"`
+	Follow    *[]interface{} `json:"follow"`
+	Followers *[]interface{} `json:"followers"`
 }
 
 /* Estructura de link */
 type Link struct {
-	Name        string    `json:"name"  		bson:"name" 	`
-	Url         string    `json:"url"  			bson:"url" 		`
-	Description string    `json:"description"  	bson:"description" `
-	Comments    []Comment `json:"comments"  	bson:"comments"`
-	Like        uint32    `json:"like"  		bson:"like"`
-	Dislike     uint32    `json:"dislike"  		bson:"dislike"`
+	Name        string     `json:"name"`
+	Url         string     `json:"url"`
+	Description string     `json:"description"`
+	Comments    *[]Comment `json:"comments"`
+	Like        uint32     `json:"like"`
+	Dislike     uint32     `json:"dislike"`
 }
 type Comment struct {
-	IdUser  string `json:"iduser"  		bson:"iduser"`
-	Content string `json:"content"  	bson:"content"`
-	Like    uint32 `json:"like"  		bson:"like"`
-	Dislike uint32 `json:"dislike"  	bson:"dislike"`
+	IdUser  string `json:"iduser"`
+	Content string `json:"content"`
+	Like    uint32 `json:"like"`
+	Dislike uint32 `json:"dislike"`
 }
 
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
@@ -90,18 +91,24 @@ func forgotPassword(w http.ResponseWriter, req *http.Request) {
 func signupUser(w http.ResponseWriter, req *http.Request) {
 	setupResponse(&w, req)
 
-	var user User
+	var user model.User
 	_ = json.NewDecoder(req.Body).Decode(&user)
+	hash, err := bcrypt.GeneratePassword(user.Password)
+	if err != nil {
+		fmt.Println(err)
+	}
+	/* user.Password = fmt.Sprintf("%s", hash) */
+	user.Password = string(hash)
+	_, err = databases.FindOne("links", "User", "username", user.Username)
+	/* jsonUser, _ := json.Marshal(user)
+	fmt.Printf("%s\n", jsonUser) */
+	if err == nil {
 
-	fmt.Printf("%s\n", user)
-
-	findUser := databases.FindOne("links", "User", "username", user.Username)
-	if findUser != nil {
 		//Encontró
-		fmt.Println(findUser)
 		json.NewEncoder(w).Encode(Response{Title: "USER FOUND"})
 	} else {
 		//No encontró
+
 		err := databases.InsertOne("links", "User", user)
 		if err != nil {
 			//No ingreso datos
@@ -115,16 +122,21 @@ func signupUser(w http.ResponseWriter, req *http.Request) {
 
 func singinUser(w http.ResponseWriter, req *http.Request) {
 	setupResponse(&w, req)
-	var user User
+	var user model.User
 	_ = json.NewDecoder(req.Body).Decode(&user)
 
-	findUser := databases.FindOne("links", "User", "username", user.Username)
-	fmt.Printf("%v", findUser)
-	if findUser != nil {
+	findUser, err := databases.FindOne("links", "User", "username", user.Username)
+	if err == nil {
 		//Se encontró el usuario
 		//Desencriptar contraseña
+		compare := bcrypt.ComparatePassword(findUser.Password, user.Password)
+		if compare {
+			json.NewEncoder(w).Encode(Response{Title: "USER FOUND"})
 
-		json.NewEncoder(w).Encode(Response{Title: "USER FOUND"})
+		} else {
+			json.NewEncoder(w).Encode(Response{Title: "INCORRECT PASSWORD"})
+
+		}
 
 	} else {
 		json.NewEncoder(w).Encode(Response{Title: "USER NOT FOUND"})
@@ -136,23 +148,10 @@ func singinUser(w http.ResponseWriter, req *http.Request) {
 func homeHandler(res http.ResponseWriter, req *http.Request) {
 	setupResponse(&res, req)
 
-	links := Link{Name: "Google", Url: "https://www.google.com"}
-
-	err := databases.InsertOne("links", "links", links)
-	res.Write([]byte("id ingresado" + err.Error()))
 }
 
 func home(res http.ResponseWriter, req *http.Request) {
 
-	text := "Hola como esta"
-
-	hash := crypto.Encrypt(text)
-
-	fmt.Printf("%v\n", hash)
-
-	textPlain := crypto.Decrypt(hash)
-
-	fmt.Printf("%v", textPlain)
 	res.Write([]byte("Hola"))
 
 }
