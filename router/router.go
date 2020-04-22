@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-
+	"time"
 	"../bcrypt"
 	"../databases"
 	"../model"
@@ -16,37 +16,10 @@ var (
 	router *mux.Router
 )
 
-/* Estructura de respuesta */
+// Estructura de respuesta */
 type Response struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
-}
-
-/* Estructura de usuario */
-type User struct {
-	Username  string         `json:"username"`
-	Password  string         `json:"password"`
-	Email     string         `json:"email"`
-	Image     string         `json:"image"`
-	Links     *[]Link        `json:"links"`
-	Follow    *[]interface{} `json:"follow"`
-	Followers *[]interface{} `json:"followers"`
-}
-
-/* Estructura de link */
-type Link struct {
-	Name        string     `json:"name"`
-	Url         string     `json:"url"`
-	Description string     `json:"description"`
-	Comments    *[]Comment `json:"comments"`
-	Like        uint32     `json:"like"`
-	Dislike     uint32     `json:"dislike"`
-}
-type Comment struct {
-	IdUser  string `json:"iduser"`
-	Content string `json:"content"`
-	Like    uint32 `json:"like"`
-	Dislike uint32 `json:"dislike"`
 }
 
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
@@ -59,12 +32,10 @@ func setupResponse(w *http.ResponseWriter, req *http.Request) {
 func init() {
 	router = mux.NewRouter().StrictSlash(true)
 	databases.Conectar()
-	router.HandleFunc("/", home).Methods("GET")
-	/* 	router.HandleFunc("/signin", singinUser).Methods(http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodOptions) */
 	router.HandleFunc("/signin", singinUser).Methods("POST")
 	router.HandleFunc("/signup", signupUser).Methods("POST")
 	router.HandleFunc("/forgot", forgotPassword).Methods("POST")
-	router.HandleFunc("/home", home).Methods("GET")
+	router.HandleFunc("/addLink/{user}", addLink).Methods("POST")
 	router.Use(mux.CORSMethodMiddleware(router))
 	router.Use(loggingMiddleware)
 
@@ -97,11 +68,10 @@ func signupUser(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	/* user.Password = fmt.Sprintf("%s", hash) */
+
 	user.Password = string(hash)
 	_, err = databases.FindOne("links", "User", "username", user.Username)
-	/* jsonUser, _ := json.Marshal(user)
-	fmt.Printf("%s\n", jsonUser) */
+
 	if err == nil {
 
 		//Encontró
@@ -150,10 +120,32 @@ func homeHandler(res http.ResponseWriter, req *http.Request) {
 
 }
 
-func home(res http.ResponseWriter, req *http.Request) {
+func addLink(w http.ResponseWriter, req *http.Request) {
+	setupResponse(&w, req)
 
-	res.Write([]byte("Hola"))
+	params := mux.Vars(req)
+	user := params["user"]
+	var link model.Link
+	_ = json.NewDecoder(req.Body).Decode(&link)
+	link.Timestamp = time.Now()
+	err := databases.FindOneAndUpdate("links", "User", "username", user, link)
+	if err != nil {
+		//No se encontro el
+			json.NewEncoder(w).Encode(Response{Title: "USER NOT UPDATED"})
 
+	} else{
+			// se encontró
+			json.NewEncoder(w).Encode(Response{Title: "UPDATED USER"})
+
+	}
+/*	fmt.Println(userFound)
+	var links []model.Link
+	links = userFound.Links
+	fmt.Println(links)
+	links = append(links, link)
+	fmt.Println(links)
+	userFound.Links = links
+	fmt.Println(userFound)*/
 }
 
 //GetRouter Funcion para retornar el router

@@ -77,6 +77,23 @@ func FindAll(database string, document string) []model.User {
 	return results
 }
 
+func FindOneAndUpdate(database, document, clave, valor string, link model.Link ) error{
+
+	collection := client.Database(database).Collection(document)
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+
+	filter := bson.D{{clave, valor}}
+	update := bson.D{{"$push", bson.D{{"links", link}}}}
+
+	var updatedDocument bson.M
+	err := collection.FindOneAndUpdate(ctx, filter, update).Decode(&updatedDocument)
+	if err != nil {
+		log.Fatal (err)
+		return err
+	}
+	return nil
+}
+
 //Encuentra uno
 func FindOne(database, document, clave, valor string) (model.User, error) {
 	var result model.User
