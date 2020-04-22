@@ -7,9 +7,9 @@ type User struct {
 	Password  string         `json:"password"`
 	Email     string         `json:"email"`
 	Image     string         `json:"image"`
-	Follow    *[]interface{} `json:"follow"`
-	Links     *[]Link        `json:"links"`
-	Followers *[]interface{} `json:"followers"`
+	Links     []Link        `json:"links"`
+	Followers []string `json:"followers"`
+	Follow    []string  `json:"follow"`
 }
 
 /* Estructura de link */
@@ -17,7 +17,7 @@ type Link struct {
 	Name        string     `json:"name"`
 	Url         string     `json:"url"`
 	Description string     `json:"description"`
-	Comments    *[]Comment `json:"comments"`
+	Comments    []Comment `json:"comments"`
 	Like        uint32     `json:"like"`
 	Timestamp 	time.Time  `json:"timestamp"`
 }

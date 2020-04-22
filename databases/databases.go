@@ -45,7 +45,15 @@ func InsertOne(database string, document string, data model.User) error {
 	/* Abre un contexto */
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	/* Inserta un dato */
-	_, err := collection.InsertOne(ctx, convertBSON(data))
+	_, err := collection.InsertOne(ctx, bson.M{
+		"username": data.Username,
+		"password": data.Password,
+		"email": data.Email,
+		"image": data.Image,
+		"links": bson.A{},
+		"followers": bson.A{},
+		"follow": bson.A{},
+	})
 	/*  chequea error*/
 	controlError(err)
 	return err
@@ -83,7 +91,14 @@ func FindOneAndUpdate(database, document, clave, valor string, link model.Link )
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 
 	filter := bson.D{{clave, valor}}
-	update := bson.D{{"$push", bson.D{{"links", link}}}}
+	update := bson.D{{"$push", bson.D{{"links", bson.M{
+			"name": link.Name,
+			"url": link.Url,
+			"description": link.Description,
+			"comments": bson.A{},
+			"like": link.Like,
+			"timestamp": link.Timestamp,
+		}}}}}
 
 	var updatedDocument bson.M
 	err := collection.FindOneAndUpdate(ctx, filter, update).Decode(&updatedDocument)
