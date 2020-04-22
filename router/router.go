@@ -19,7 +19,7 @@ var (
 // Estructura de respuesta */
 type Response struct {
 	Title       string `json:"title"`
-	Description string `json:"description"`
+	Description interface{} `json:"description"`
 }
 
 func setupResponse(w *http.ResponseWriter, req *http.Request) {
@@ -36,6 +36,7 @@ func init() {
 	router.HandleFunc("/signup", signupUser).Methods("POST")
 	router.HandleFunc("/forgot", forgotPassword).Methods("POST")
 	router.HandleFunc("/addLink/{user}", addLink).Methods("POST")
+	router.HandleFunc("/profile/{user}", getProfile).Methods("GET")
 	router.Use(mux.CORSMethodMiddleware(router))
 	router.Use(loggingMiddleware)
 
@@ -115,8 +116,22 @@ func singinUser(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func homeHandler(res http.ResponseWriter, req *http.Request) {
+func getProfile(res http.ResponseWriter, req *http.Request) {
 	setupResponse(&res, req)
+
+	params := mux.Vars(req)
+	//Tenemos el usuario
+	user := params["user"]
+	findUser, err := databases.FindOne("links", "User", "username", user)
+	fmt.Println(findUser)
+	if err != nil {
+		//no se encontrós
+		json.NewEncoder(res).Encode(Response{Title: "USER NOT FOUND"})
+	} else {
+		// se encontrsó
+		json.NewEncoder(res).Encode(Response{Title: "USER FOUND", Description: findUser})
+	}
+
 
 }
 
